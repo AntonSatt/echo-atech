@@ -26,6 +26,7 @@ MQTT (unchanged contract + calibration extras):
 """
 import json
 import math
+import os
 import socket
 import struct
 import time
@@ -33,9 +34,9 @@ from collections import deque
 
 import paho.mqtt.client as mqtt
 
-# ---- Tunables --------------------------------------------------------------
-QUIET_S = 30.0
-ALARM_S = 60.0
+# ---- Tunables (env-overridable: QUIET_S=5 ALARM_S=10 for fast testing) ----
+QUIET_S = float(os.environ.get("QUIET_S", 30.0))
+ALARM_S = float(os.environ.get("ALARM_S", 60.0))
 SENSOR_TIMEOUT_S = 10.0
 TICK_S = 0.5
 

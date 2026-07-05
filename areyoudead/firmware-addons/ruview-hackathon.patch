@@ -1,0 +1,36 @@
+diff --git a/firmware/esp32-csi-node/main/CMakeLists.txt b/firmware/esp32-csi-node/main/CMakeLists.txt
+index 0cabf5d..bd79e23 100644
+--- a/firmware/esp32-csi-node/main/CMakeLists.txt
++++ b/firmware/esp32-csi-node/main/CMakeLists.txt
+@@ -1,5 +1,7 @@
+ set(SRCS
+     "main.c" "csi_collector.c" "stream_sender.c" "nvs_config.c"
++    # MagasinX hackathon — Atech NeoPixel grid status indicator
++    "status_led.c"
+     "edge_processing.c" "ota_update.c" "power_mgmt.c"
+     "wasm_runtime.c" "wasm_upload.c" "rvf_parser.c"
+     "mmwave_sensor.c"
+diff --git a/firmware/esp32-csi-node/main/main.c b/firmware/esp32-csi-node/main/main.c
+index 67973ce..dacc892 100644
+--- a/firmware/esp32-csi-node/main/main.c
++++ b/firmware/esp32-csi-node/main/main.c
+@@ -38,6 +38,7 @@
+ #include "c6_lp_core.h"            /* ADR-110: LP-core hibernation (no-op on S3) */
+ #include "c6_sync_espnow.h"        /* ADR-110 D1 workaround: ESP-NOW sync */
+ #include "c6_softap_he.h"          /* ADR-110 B1/B2: HE/TWT soft-AP (no-op when disabled) */
++#include "status_led.h"            /* MagasinX hackathon: Atech NeoPixel status grid */
+ #ifdef CONFIG_CSI_MOCK_ENABLED
+ #include "mock_csi.h"
+ #endif
+@@ -210,6 +211,11 @@ void app_main(void)
+      * on some devices, reverting node_id to the Kconfig default of 1. */
+     csi_collector_set_node_id(g_nvs_config.node_id);
+ 
++#if defined(CONFIG_IDF_TARGET_ESP32S3)
++    /* MagasinX hackathon: Atech NeoPixel grid (port 9) shows node state. */
++    status_led_start();
++#endif
++
+     const esp_app_desc_t *app_desc = esp_app_get_description();
+ #if defined(CONFIG_IDF_TARGET_ESP32C6)
+     const char *target_name = "ESP32-C6";
