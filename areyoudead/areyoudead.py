@@ -57,7 +57,12 @@ HDR_LEN = struct.calcsize(HDR)
 # Only OUR boards may feed the brain. A teammate's RuView nodes joined the
 # hotspot with node-ids 1/2 and their 20 m CSI path turned our baseline to
 # mush. Kernel has no netfilter, so we check sender MAC (via ARP) here.
-ALLOWED_MACS = {"9c:13:9e:19:01:68", "9c:13:9e:19:f3:0c"}
+ALLOWED_MACS = {
+    "9c:13:9e:19:f3:0c",     # node2
+    # "9c:13:9e:19:01:68",   # node1 CUT 2026-07-05 ~17:40: radio degraded
+    # (turbulence collapsed 35->9, sigma 20% of mean, 3 false-life/2.5min
+    # in empty zone). Check its power supply / power-cycle before re-adding.
+}
 _allowed_ips = set()
 _denied_ips = {}                # ip -> last ARP re-check ts
 
