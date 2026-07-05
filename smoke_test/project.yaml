@@ -1,0 +1,16 @@
+name: smoke_test
+board: 14port
+modules: []
+code:
+  setup: |
+    Serial.println("{\"type\":\"event\",\"payload\":{\"event_type\":\"log\",\"key\":\"boot_msg\",\"value\":\"smoke test alive\",\"source\":\"smoke\"}}");
+  loop: |
+    static unsigned long lastBeat = 0;
+    static unsigned long beats = 0;
+    if (millis() - lastBeat >= 1000) {
+      lastBeat = millis();
+      beats++;
+      Serial.print("{\"type\":\"event\",\"payload\":{\"event_type\":\"state\",\"key\":\"heartbeat\",\"value\":");
+      Serial.print(beats);
+      Serial.println(",\"source\":\"smoke\"}}");
+    }

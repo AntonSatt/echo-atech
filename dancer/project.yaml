@@ -1,0 +1,27 @@
+name: dancer
+board: 14port
+modules_path: ../light_modules
+modules:
+  - {id: espnow_link, instance: radio, port: 1}
+  - {id: neopixel,    instance: led,  port: 7}
+code:
+  loop: |
+    // ============ LIGHT DANCER: renders whatever the conductor says ============
+    static unsigned long nextDraw = 0;
+    if (millis() < nextDraw) return;
+    nextDraw = millis() + 30;
+
+    if (radio.linked()) {
+      uint32_t t = radio.syncedClock();
+      for (int i = 0; i < 9; i++) {
+        uint8_t r, g, b;
+        EspNowLink::pixelColor(i, t, radio.pattern(), radio.hue(), r, g, b);
+        led.setPixel(i, r, g, b);
+      }
+    } else {
+      // no conductor heard for 3 s: dim blue breathe = "searching"
+      float s = 0.5f + 0.5f * sinf((float)(millis() % 3000UL) * (6.2831853f / 3000.0f));
+      uint8_t v = (uint8_t)(8 + 40 * s);
+      for (int i = 0; i < 9; i++) led.setPixel(i, 0, 0, v);
+    }
+    led.show();

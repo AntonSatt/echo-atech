@@ -1,0 +1,186 @@
+# Atech 14-Port motherboard
+#
+# Portrait board with three columns of slots. Left column (ports 1-6) and
+# right column (ports 9-14) run top→bottom; a single isolated slot (port 7)
+# sits top-middle. The Reset button (port 12) and USB-C jack (port 8) are
+# reserved and break adjacency in their columns.
+#
+# Sourced from backend/motherboard/board.yaml (14port_board).
+
+id: 14port
+name: "Atech 14-Port Board"
+
+microcontroller:
+  type: esp32
+  variant: ESP32-S3
+  flash_size_kb: 8192
+  ram_size_kb: 512
+
+platformio_env: esp32-s3-devkitc-1
+platformio_framework: arduino
+
+# Reserved port ids that exist on the layout but cannot host a module.
+reserved:
+  - port_8       # USB-C jack (bottom-middle)
+  - port_12      # Reset button (right column)
+
+# 2D physical layout (matches the frontend renderer). Numbers are slot ids
+# (one-based), "" is a physical gap, text labels are reserved positions.
+# Portrait orientation: port_7 is top-middle, USB-C (port_8) is bottom-middle.
+layout:
+  - ["9", "10", "11", "Restart", "13", "14"]   # right column, top→bottom
+  - ["7", "",   "",   "",        "",   "USB-C"] # middle: 7 top, USB-C bottom
+  - ["1", "2",  "3",  "4",       "5",  "6"]     # left column, top→bottom
+
+notes: |
+  12 module slots in 3 columns: left (1-6), middle (just port_7), right
+  (9-14). Top edge ports: 1, 7, 9. Bottom edge ports: 6, 14. Corners:
+  top-left=port_1, top-right=port_9, bottom-left=port_6, bottom-right=port_14.
+  Port_7 is isolated in the middle column with NO adjacent slots — ideal for
+  a single central component (main display, primary sensor, IMU). For
+  4-wheeled vehicles, place motors at the four corner ports. Double-width
+  modules (size=2) must use one adjacent pair: left side [1,2], [2,3], [3,4],
+  [4,5], [5,6]; right side [9,10], [10,11], [13,14]. The Reset button at
+  port_12 breaks adjacency between ports 11 and 13.
+
+ports:
+  - id: port_1
+    name: "Port 1"
+    type: universal
+    slot_number: 1
+    side: left
+    pins:
+      - {gpio: 9, function: signal}
+      - {gpio: 8, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_2
+    name: "Port 2"
+    type: universal
+    slot_number: 2
+    side: left
+    pins:
+      - {gpio: 5, function: signal}
+      - {gpio: 4, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_3
+    name: "Port 3"
+    type: universal
+    slot_number: 3
+    side: left
+    pins:
+      - {gpio: 17, function: signal}
+      - {gpio: 18, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, uart]
+
+  - id: port_4
+    name: "Port 4"
+    type: universal
+    slot_number: 4
+    side: left
+    pins:
+      - {gpio: 16, function: signal}
+      - {gpio: 15, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, uart]
+
+  - id: port_5
+    name: "Port 5"
+    type: universal
+    slot_number: 5
+    side: left
+    pins:
+      - {gpio: 11, function: signal}
+      - {gpio: 10, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_6
+    name: "Port 6"
+    type: universal
+    slot_number: 6
+    side: left
+    pins:
+      - {gpio: 13, function: signal}
+      - {gpio: 12, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_7
+    name: "Port 7"
+    type: universal
+    slot_number: 7
+    side: top
+    pins:
+      - {gpio: 6, function: signal}
+      - {gpio: 7, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  # Port 8 reserved for USB-C (bottom-middle, not a module slot)
+
+  - id: port_9
+    name: "Port 9"
+    type: universal
+    slot_number: 9
+    side: right
+    pins:
+      - {gpio: 40, function: signal}
+      - {gpio: 41, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio]
+
+  - id: port_10
+    name: "Port 10"
+    type: universal
+    slot_number: 10
+    side: right
+    pins:
+      - {gpio: 1, function: signal}
+      - {gpio: 2, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_11
+    name: "Port 11"
+    type: universal
+    slot_number: 11
+    side: right
+    pins:
+      - {gpio: 43, function: signal}
+      - {gpio: 44, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio]
+
+  # Port 12 reserved for Reset button (right column, not a module slot)
+
+  - id: port_13
+    name: "Port 13"
+    type: universal
+    slot_number: 13
+    side: right
+    pins:
+      - {gpio: 39, function: signal}
+      - {gpio: 38, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio]
+
+  - id: port_14
+    name: "Port 14"
+    type: universal
+    slot_number: 14
+    side: right
+    pins:
+      - {gpio: 36, function: signal}
+      - {gpio: 35, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio]
+
+# Adjacent pairs that a double-width module may span. Order here is just
+# adjacency (lower-first); physical ORIENTATION — including the left-column
+# pin swap — is derived from each port's `side` at codegen time, matching the
+# firmware's resolve_double_module_pins rule. So you can write the pair in
+# either order and it wires correctly.
+adjacent_port_pairs:
+  # Left column (side: left)
+  - ["port_1", "port_2"]
+  - ["port_2", "port_3"]
+  - ["port_3", "port_4"]
+  - ["port_4", "port_5"]
+  - ["port_5", "port_6"]
+  # Right column (side: right), skipping Reset at port_12
+  - ["port_9", "port_10"]
+  - ["port_10", "port_11"]
+  - ["port_13", "port_14"]

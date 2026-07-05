@@ -1,0 +1,103 @@
+# Atech 8-Port motherboard
+#
+# Two rows of port columns flanking a reserved Restart button (port 6) and
+# USB-C jack (port 8). Six general-purpose module slots: 1-5 and 7. Double-
+# width modules can span [1,2] or [3,4]; the gap below row 2 separates the
+# pairs, and Restart/USB-C make 5-7 non-adjacent.
+#
+# Sourced from backend/motherboard/board.yaml (8port_board).
+
+id: 8port
+name: "Atech 8-Port Board"
+
+microcontroller:
+  type: esp32
+  variant: ESP32-S3
+  flash_size_kb: 8192
+  ram_size_kb: 512
+
+platformio_env: esp32-s3-devkitc-1
+platformio_framework: arduino
+
+# Reserved port ids that exist on the layout but cannot host a module.
+reserved:
+  - port_6
+  - port_8
+
+# 2D physical layout (matches the frontend renderer). Numbers are slot ids
+# (one-based), "" is a physical gap, text labels are reserved positions.
+layout:
+  - ["1", "2", "", "3", "4"]
+  - ["5", "Restart", "", "7", "USB-C"]
+
+notes: |
+  6 module slots arranged as right column (1, 2, 3, 4) and left column (5, 7).
+  Two adjacent pairs for double-width modules: [1,2] and [3,4]. Port 5 and
+  port 7 are NOT adjacent — the Restart button at port 6 and the USB-C jack
+  at port 8 break that column. Corners (useful for vehicle motor placement):
+  top-left=port_5, top-right=port_1, bottom-left=port_7, bottom-right=port_4.
+
+ports:
+  - id: port_1
+    name: "Port 1"
+    type: universal
+    slot_number: 1
+    side: right
+    pins:
+      - {gpio: 5,  function: signal}
+      - {gpio: 4,  function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_2
+    name: "Port 2"
+    type: universal
+    slot_number: 2
+    side: right
+    pins:
+      - {gpio: 7,  function: signal}
+      - {gpio: 6,  function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_3
+    name: "Port 3"
+    type: universal
+    slot_number: 3
+    side: right
+    pins:
+      - {gpio: 9,  function: signal}
+      - {gpio: 10, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog]
+
+  - id: port_4
+    name: "Port 4"
+    type: universal
+    slot_number: 4
+    side: right
+    pins:
+      - {gpio: 1,  function: signal}
+      - {gpio: 2,  function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio]
+
+  - id: port_5
+    name: "Port 5"
+    type: universal
+    slot_number: 5
+    side: left
+    pins:
+      - {gpio: 43, function: signal}
+      - {gpio: 44, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio]
+
+  - id: port_7
+    name: "Port 7"
+    type: universal
+    slot_number: 7
+    side: left
+    pins:
+      - {gpio: 15, function: signal}
+      - {gpio: 16, function: signal_b}
+    compatible_interfaces: [i2c, digital, gpio, analog, uart]
+
+adjacent_port_pairs:
+  - ["port_1", "port_2"]
+  - ["port_3", "port_4"]

@@ -1,0 +1,42 @@
+id: espnow_link
+name: "ESP-NOW Light Link"
+category: connectivity
+interface: gpio
+size: 1
+description: |
+  Board-to-board broadcast link over ESP-NOW (router-less WiFi). One board
+  acts as conductor and broadcasts {pattern, hue, clock}; every other board
+  receives it and can render animations phase-locked to the conductor's
+  clock. Uses no port pins — assign it to any free port.
+
+driver:
+  header: espnow_link.h
+  source: espnow_link.cpp
+  class_name: EspNowLink
+
+templates:
+  globals: |
+    EspNowLink {{ instance }};
+  setup: |
+    {{ instance }}.begin();
+  loop: ""
+
+events: []
+actions: []
+lib_deps: []
+
+usage: |
+  // Public API of EspNowLink — the instance is `{{ instance }}`.
+  // Conductor side:
+  {{ instance }}.broadcast(pattern, hue);        // fire-and-forget, ~1 ms
+  // Dancer side:
+  bool ok = {{ instance }}.linked();             // packet seen in last 3 s
+  uint8_t p = {{ instance }}.pattern();
+  uint8_t h = {{ instance }}.hue();
+  // Both sides — conductor-synchronized milliseconds for phase-locked anims:
+  uint32_t t = {{ instance }}.syncedClock();
+  // Static helpers (no instance needed):
+  uint8_t r, g, b;
+  EspNowLink::pixelColor(i, t, p, h, r, g, b);   // 3x3 grid pattern renderer
+  EspNowLink::hsvToRgb(h, 255, r, g, b);
+  uint16_t c565 = EspNowLink::hsvTo565(h);       // for TFT swatches

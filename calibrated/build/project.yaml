@@ -1,0 +1,151 @@
+name: calibrated
+board: 14port
+modules:
+- id: button
+  instance: btn
+  port: port_1
+- id: st7735_tft
+  instance: screen
+  ports:
+  - port_3
+  - port_4
+- id: rotary_encoder
+  instance: knob
+  ports:
+  - port_5
+  - port_6
+- id: pir
+  instance: pirm
+  port: port_7
+- id: neopixel
+  instance: led
+  port: port_9
+- id: speaker
+  instance: spk
+  ports:
+  - port_13
+  - port_14
+code:
+  setup: 'knob.setAcceleration(false);   // 1 count per detent, 18 detents = 360 deg
+
+    knob.enableRing(false);        // position ring would spoil the blind spin
+
+    randomSeed((unsigned long)esp_random());
+
+    '
+  loop: "// ================= CALIBRATED: two-game precision arcade =================\n\
+    // st: 0 menu | 10 spin-intro 11 spin-dark 12 spin-result 13 spin-total\n//  \
+    \           | 20 wave-intro 23 countdown 21 wave-dark 22 wave-result 24 wave-total\n\
+    static int st = 0;\nstatic int sel = 0;\nstatic bool dirty = true;\nstatic long\
+    \ lastPos = 0;\nstatic bool pKnob = false, pBtn = false, pMot = false;\nstatic\
+    \ int rnd = 0;\nstatic int g1t[3];\nstatic long g2t[3];\nstatic int sum = 0;\n\
+    static int lastPts = 0;\nstatic long lastVal = 0;\nstatic int bestG1 = -1, bestG2\
+    \ = -1;\nstatic unsigned long t0 = 0, ledOff = 0, tick = 0;\nstatic int cnt =\
+    \ 0;\n\n// The SDK's generated loop code above already consumed the was*() edge\n\
+    // methods, so derive edges from level reads instead.\nbool kNow = knob.isPressed();\
+    \        bool kClick = kNow && !pKnob;  pKnob = kNow;\nbool bNow = btn.isPressed();\
+    \         bool bClick = bNow && !pBtn;   pBtn = bNow;\nbool mNow = pirm.isMotionDetected();\
+    \ bool wave   = mNow && !pMot;   pMot = mNow;\nlong pos = knob.getPosition();\n\
+    long dPos = pos - lastPos; lastPos = pos;\n\nchar buf[40];\nauto center = [&](const\
+    \ char* s, int y, int sz, uint16_t c){\n  screen.setCursor((int)((160 - (int)strlen(s)\
+    \ * 6 * sz) / 2), y);\n  screen.setTextSize(sz); screen.setTextColor(c); screen.print(s);\n\
+    };\nauto emitState = [&](const char* key, long v){\n  Serial.print(\"{\\\"type\\\
+    \":\\\"event\\\",\\\"payload\\\":{\\\"event_type\\\":\\\"state\\\",\\\"key\\\"\
+    :\\\"\");\n  Serial.print(key);\n  Serial.print(\"\\\",\\\"value\\\":\");\n  Serial.print(v);\n\
+    \  Serial.println(\",\\\"source\\\":\\\"game\\\"}}\");\n};\nauto feedback = [&](int\
+    \ pts){\n  if (pts >= 90)      { led.setAll(0, 255, 0);   spk.playNote(NOTE_C5,\
+    \ 90); spk.playNote(NOTE_E5, 90); spk.playNote(NOTE_G5, 150); }\n  else if (pts\
+    \ >= 50) { led.setAll(255, 140, 0); spk.playNote(NOTE_E4, 120); spk.playNote(NOTE_G4,\
+    \ 150); }\n  else                { led.setAll(255, 0, 0);   spk.playTone(150,\
+    \ 350); }\n  led.show(); ledOff = millis() + 1200;\n};\nuint16_t ptsColor = lastPts\
+    \ >= 90 ? ST7735_TFT::COLOR_GREEN\n                  : (lastPts >= 50 ? ST7735_TFT::COLOR_ORANGE\
+    \ : ST7735_TFT::COLOR_RED);\n\nif (ledOff && millis() > ledOff) { led.clear();\
+    \ led.show(); ledOff = 0; }\n\n// big button = abort to menu from anywhere\nif\
+    \ (bClick && st != 0) { st = 0; dirty = true; spk.stop(); }\n\nswitch (st) {\n\
+    \ncase 0: // ---------------- MENU ----------------\n  if (dPos != 0) { sel ^=\
+    \ 1; dirty = true; }\n  if (kClick) {\n    rnd = 0; sum = 0; dirty = true;\n \
+    \   if (sel == 0) { g1t[0] = 360;  g1t[1] = 540;  g1t[2] = (int)random(5, 31)\
+    \ * 20;  st = 10; }\n    else          { g2t[0] = 3000; g2t[1] = 5000; g2t[2]\
+    \ = (long)random(20, 81) * 100; st = 20; tick = 0; }\n    spk.playTone(NOTE_A4,\
+    \ 60);\n  }\n  if (dirty) {\n    screen.clear();\n    center(\"CALIBRATED\", 4,\
+    \ 2, ST7735_TFT::COLOR_CYAN);\n    screen.setTextSize(1);\n    screen.setCursor(14,\
+    \ 32);\n    screen.setTextColor(sel == 0 ? ST7735_TFT::COLOR_YELLOW : ST7735_TFT::COLOR_WHITE);\n\
+    \    screen.print(sel == 0 ? \"> BLIND SPIN \" : \"  BLIND SPIN \");\n    if (bestG1\
+    \ >= 0) { snprintf(buf, sizeof buf, \"best %d\", bestG1); screen.print(buf); }\n\
+    \    screen.setCursor(14, 46);\n    screen.setTextColor(sel == 1 ? ST7735_TFT::COLOR_YELLOW\
+    \ : ST7735_TFT::COLOR_WHITE);\n    screen.print(sel == 1 ? \"> SIXTH SENSE \"\
+    \ : \"  SIXTH SENSE \");\n    if (bestG2 >= 0) { snprintf(buf, sizeof buf, \"\
+    best %d\", bestG2); screen.print(buf); }\n    center(\"turn = pick   press = play\"\
+    , 68, 1, ST7735_TFT::COLOR_GREEN);\n    screen.display(); dirty = false;\n  }\n\
+    \  break;\n\ncase 10: // ---------------- BLIND SPIN: intro ----------------\n\
+    \  if (dirty) {\n    screen.clear();\n    snprintf(buf, sizeof buf, \"BLIND SPIN\
+    \  %d/3\", rnd + 1);\n    center(buf, 4, 1, ST7735_TFT::COLOR_CYAN);\n    snprintf(buf,\
+    \ sizeof buf, \"%d\", g1t[rnd]);\n    center(buf, 18, 3, ST7735_TFT::COLOR_YELLOW);\n\
+    \    center(\"degrees - no peeking!\", 48, 1, ST7735_TFT::COLOR_WHITE);\n    center(\"\
+    press knob to start\", 66, 1, ST7735_TFT::COLOR_GREEN);\n    screen.display();\
+    \ dirty = false;\n  }\n  if (kClick) { knob.resetPosition(); lastPos = 0; spk.playTone(NOTE_A4,\
+    \ 60); st = 11; dirty = true; }\n  break;\n\ncase 11: // ---------------- BLIND\
+    \ SPIN: turning in the dark ----------------\n  if (dirty) { screen.clear(); screen.display();\
+    \ dirty = false; }\n  if (kClick) {\n    long deg = labs(pos) * 20;\n    int err\
+    \ = (int)labs(deg - g1t[rnd]);\n    lastPts = 100 - err; if (lastPts < 0) lastPts\
+    \ = 0;\n    lastVal = deg;\n    sum += lastPts;\n    feedback(lastPts);\n    emitState(\"\
+    g1_round_score\", lastPts);\n    st = 12; dirty = true;\n  }\n  break;\n\ncase\
+    \ 12: // ---------------- BLIND SPIN: round result ----------------\n  if (dirty)\
+    \ {\n    screen.clear();\n    if (lastVal == g1t[rnd]) center(\"PERFECT!\", 2,\
+    \ 1, ST7735_TFT::COLOR_MAGENTA);\n    snprintf(buf, sizeof buf, \"you %ld / goal\
+    \ %d deg\", lastVal, g1t[rnd]);\n    center(buf, 14, 1, ST7735_TFT::COLOR_WHITE);\n\
+    \    snprintf(buf, sizeof buf, \"+%d\", lastPts);\n    center(buf, 28, 3, ptsColor);\n\
+    \    center(rnd < 2 ? \"press knob: next round\" : \"press knob: total\", 66,\
+    \ 1, ST7735_TFT::COLOR_GREEN);\n    screen.display(); dirty = false;\n  }\n  if\
+    \ (kClick) {\n    rnd++;\n    if (rnd < 3) st = 10;\n    else { if (sum > bestG1)\
+    \ bestG1 = sum; emitState(\"g1_total\", sum); st = 13; }\n    dirty = true;\n\
+    \  }\n  break;\n\ncase 13: // ---------------- BLIND SPIN: total ----------------\n\
+    \  if (dirty) {\n    screen.clear();\n    center(\"BLIND SPIN TOTAL\", 6, 1, ST7735_TFT::COLOR_CYAN);\n\
+    \    snprintf(buf, sizeof buf, \"%d/300\", sum);\n    center(buf, 24, 3, ST7735_TFT::COLOR_YELLOW);\n\
+    \    if (sum >= bestG1) center(\"new best!\", 54, 1, ST7735_TFT::COLOR_MAGENTA);\n\
+    \    center(\"press knob: menu\", 66, 1, ST7735_TFT::COLOR_GREEN);\n    screen.display();\
+    \ dirty = false;\n  }\n  if (kClick) { st = 0; dirty = true; }\n  break;\n\ncase\
+    \ 20: // ---------------- SIXTH SENSE: intro (redraws while warming up) ----------------\n\
+    \  if (dirty || (tick && millis() > tick)) {\n    tick = millis() + 500;\n   \
+    \ screen.clear();\n    snprintf(buf, sizeof buf, \"SIXTH SENSE  %d/3\", rnd +\
+    \ 1);\n    center(buf, 4, 1, ST7735_TFT::COLOR_CYAN);\n    snprintf(buf, sizeof\
+    \ buf, \"%ld.%ld s\", g2t[rnd] / 1000, (g2t[rnd] % 1000) / 100);\n    center(buf,\
+    \ 18, 3, ST7735_TFT::COLOR_YELLOW);\n    center(\"count in the dark, wave!\",\
+    \ 48, 1, ST7735_TFT::COLOR_WHITE);\n    if (!pirm.isWarmedUp()) center(\"sensor\
+    \ warming up...\", 66, 1, ST7735_TFT::COLOR_RED);\n    else                  \
+    \  center(\"press knob to start\", 66, 1, ST7735_TFT::COLOR_GREEN);\n    screen.display();\
+    \ dirty = false;\n  }\n  if (kClick && pirm.isWarmedUp()) { st = 23; cnt = 3;\
+    \ tick = millis() + 1000; dirty = true; spk.playTone(NOTE_C4, 40); }\n  break;\n\
+    \ncase 23: // ---------------- SIXTH SENSE: countdown, PIR must settle ----------------\n\
+    \  if (dirty) {\n    screen.clear();\n    snprintf(buf, sizeof buf, \"%d\", cnt);\n\
+    \    center(buf, 16, 4, ST7735_TFT::COLOR_WHITE);\n    center(\"hold still...\"\
+    , 66, 1, ST7735_TFT::COLOR_CYAN);\n    screen.display(); dirty = false;\n  }\n\
+    \  if (millis() > tick) {\n    cnt--;\n    if (cnt <= 0) {\n      if (mNow) {\
+    \ cnt = 3; tick = millis() + 1000; dirty = true; } // sensor still hot: restart\n\
+    \      else { screen.clear(); screen.display(); t0 = millis(); st = 21; }\n  \
+    \  } else { tick = millis() + 1000; dirty = true; spk.playTone(NOTE_C4, 40); }\n\
+    \  }\n  break;\n\ncase 21: // ---------------- SIXTH SENSE: dark, timer running\
+    \ ----------------\n  if (wave) {\n    long dt = (long)(millis() - t0);\n    int\
+    \ err = (int)labs(dt - g2t[rnd]);\n    lastPts = 100 - err / 50; if (lastPts <\
+    \ 0) lastPts = 0;\n    lastVal = dt;\n    sum += lastPts;\n    feedback(lastPts);\n\
+    \    emitState(\"g2_round_score\", lastPts);\n    st = 22; dirty = true;\n  }\
+    \ else if (millis() - t0 > (unsigned long)g2t[rnd] + 6000UL) {\n    lastPts =\
+    \ 0; lastVal = -1;\n    feedback(0);\n    emitState(\"g2_round_score\", 0);\n\
+    \    st = 22; dirty = true;\n  }\n  break;\n\ncase 22: // ---------------- SIXTH\
+    \ SENSE: round result ----------------\n  if (dirty) {\n    screen.clear();\n\
+    \    if (lastVal < 0) center(\"no wave seen!\", 12, 1, ST7735_TFT::COLOR_RED);\n\
+    \    else {\n      snprintf(buf, sizeof buf, \"you %ld.%02lds / goal %ld.%lds\"\
+    ,\n               lastVal / 1000, (lastVal % 1000) / 10, g2t[rnd] / 1000, (g2t[rnd]\
+    \ % 1000) / 100);\n      center(buf, 12, 1, ST7735_TFT::COLOR_WHITE);\n    }\n\
+    \    snprintf(buf, sizeof buf, \"+%d\", lastPts);\n    center(buf, 28, 3, ptsColor);\n\
+    \    center(rnd < 2 ? \"press knob: next round\" : \"press knob: total\", 66,\
+    \ 1, ST7735_TFT::COLOR_GREEN);\n    screen.display(); dirty = false;\n  }\n  if\
+    \ (kClick) {\n    rnd++;\n    if (rnd < 3) { st = 20; tick = 0; }\n    else {\
+    \ if (sum > bestG2) bestG2 = sum; emitState(\"g2_total\", sum); st = 24; }\n \
+    \   dirty = true;\n  }\n  break;\n\ncase 24: // ---------------- SIXTH SENSE:\
+    \ total ----------------\n  if (dirty) {\n    screen.clear();\n    center(\"SIXTH\
+    \ SENSE TOTAL\", 6, 1, ST7735_TFT::COLOR_CYAN);\n    snprintf(buf, sizeof buf,\
+    \ \"%d/300\", sum);\n    center(buf, 24, 3, ST7735_TFT::COLOR_YELLOW);\n    if\
+    \ (sum >= bestG2) center(\"new best!\", 54, 1, ST7735_TFT::COLOR_MAGENTA);\n \
+    \   center(\"press knob: menu\", 66, 1, ST7735_TFT::COLOR_GREEN);\n    screen.display();\
+    \ dirty = false;\n  }\n  if (kClick) { st = 0; dirty = true; }\n  break;\n}\n"
