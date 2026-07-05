@@ -187,9 +187,11 @@ def publish(event=None):
 
 
 def on_mqtt_message(client, userdata, msg):
-    global cal_until, state
+    global cal_until, state, saved_cal
     if msg.topic == "areyoudead/cmd" and msg.payload == b"calibrate":
         log("recalibration requested")
+        saved_cal = {}   # else the boot-restore path re-applies stale
+                         # baselines at the window boundary (race)
         for n in nodes.values():
             n.reset_calibration()
         cal_until = time.time() + CAL_S
