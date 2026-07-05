@@ -14,66 +14,71 @@
   --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
 }
 *{box-sizing:border-box;margin:0}
+html,body{height:100%}
 body{background:var(--page);color:var(--ink);
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  min-height:100vh;padding:20px;transition:background .5s}
+  display:flex;flex-direction:column;padding:18px;gap:14px;
+  transition:background .6s}
+body.quiet{background:#171204}
 body.alarm{background:#1c0808}
-header{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
-h1{font-size:22px;letter-spacing:.14em}
+
+header{display:flex;align-items:center;gap:14px}
+h1{font-size:20px;letter-spacing:.16em}
 h1 .q{color:var(--crit)}
-.sub{color:var(--ink-mut);font-size:12px;letter-spacing:.08em}
-#conn{margin-left:auto;font-size:12px;color:var(--ink-mut)}
+.sub{color:var(--ink-mut);font-size:11px;letter-spacing:.1em}
+header .tools{margin-left:auto;display:flex;gap:8px;align-items:center}
+button{background:var(--surface);border:1px solid var(--border);color:var(--ink-2);
+  border-radius:8px;padding:7px 12px;font:inherit;font-size:12px;cursor:pointer}
+button:hover{border-color:var(--ink-mut)}
+button.on{color:var(--good);border-color:var(--good)}
+#conn{font-size:12px;color:var(--ink-mut)}
 #conn::before{content:"●";margin-right:6px;color:var(--crit)}
 #conn.up::before{color:var(--good)}
-.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-.card{background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:16px}
-.card h2{font-size:11px;letter-spacing:.12em;color:var(--ink-mut);
-  text-transform:uppercase;margin-bottom:12px;display:flex;gap:8px;align-items:center}
-.badge{font-size:9px;border:1px solid var(--warn);color:var(--warn);
-  border-radius:99px;padding:1px 7px;letter-spacing:.1em}
-/* state banner */
-#state-card{grid-column:1/-1;display:flex;align-items:center;gap:22px;
-  padding:22px 24px}
-#state-icon{font-size:40px;line-height:1}
-#state-label{font-size:30px;font-weight:700;letter-spacing:.06em}
-#state-sub{color:var(--ink-2);font-size:13px;margin-top:4px}
-#count{margin-left:auto;text-align:right}
-#count b{font-size:44px;font-variant-numeric:tabular-nums;font-weight:600}
-#count span{display:block;color:var(--ink-mut);font-size:11px;letter-spacing:.1em}
-#deadline{height:4px;border-radius:2px;background:var(--grid);
-  margin-top:14px;overflow:hidden;grid-column:1/-1}
-#deadline i{display:block;height:100%;width:0%;background:var(--warn);
-  border-radius:2px;transition:width .4s linear}
-body.alarm #state-card{border-color:var(--crit);
-  animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{50%{box-shadow:0 0 34px rgba(208,59,59,.45)}}
+
+/* HERO */
+#hero{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:24px;position:relative;overflow:hidden;min-height:240px}
+#hero-state{font-size:min(11vw,110px);font-weight:800;letter-spacing:.04em;
+  line-height:1.05;text-align:center}
+#hero-sub{color:var(--ink-2);font-size:min(2.6vw,19px);margin-top:10px;text-align:center}
+#hero-count{margin-top:22px;font-variant-numeric:tabular-nums;
+  font-size:min(6vw,54px);font-weight:600;color:var(--ink-2)}
+#hero-count small{font-size:min(1.6vw,14px);color:var(--ink-mut);
+  display:block;text-align:center;letter-spacing:.14em}
+#deadline{position:absolute;left:0;right:0;bottom:0;height:7px;background:var(--grid)}
+#deadline i{display:block;height:100%;width:0%;background:var(--good);
+  transition:width .25s linear,background .4s}
 .st-ALIVE{color:var(--good)} .st-QUIET{color:var(--warn)}
 .st-ALARM{color:var(--crit)} .st-SENSORS_DOWN{color:var(--serious)}
 .st-CALIBRATING{color:var(--ink-2)}
-/* node cards */
-.nodehead{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
-.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-.bar-wrap{margin:12px 0 4px;position:relative;height:14px;border-radius:4px;
-  background:var(--grid);overflow:visible}
+body.alarm #hero{border-color:var(--crit);animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 60px rgba(208,59,59,.55) inset,0 0 40px rgba(208,59,59,.35)}}
+body.alarm #hero-state{animation:blink 1.1s step-end infinite}
+@keyframes blink{50%{opacity:.55}}
+
+/* bottom row */
+.row{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px}
+.card h2{font-size:10px;letter-spacing:.14em;color:var(--ink-mut);
+  text-transform:uppercase;margin-bottom:10px;display:flex;gap:8px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--baseline)}
+.nstat{font-size:12px;color:var(--ink-2);margin-left:auto}
+.bar-wrap{position:relative;height:12px;border-radius:4px;background:var(--grid);
+  margin:8px 0 4px}
 .bar{position:absolute;left:0;top:2px;bottom:2px;border-radius:0 4px 4px 0;
-  transition:width .3s}
-.thresh{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-2)}
+  transition:width .3s;max-width:100%}
+.thresh{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-2);left:50%}
 .bar-lab{font-size:11px;color:var(--ink-mut);display:flex;justify-content:space-between}
 .bar-lab b{color:var(--ink-2);font-variant-numeric:tabular-nums}
-svg text{font-family:inherit}
-.spark{width:100%;height:64px;margin-top:10px;display:block}
-/* vitals */
-.vrow{display:flex;align-items:baseline;gap:10px;margin:8px 0 2px}
-.vrow b{font-size:30px;font-variant-numeric:tabular-nums}
-.vrow .u{color:var(--ink-mut);font-size:12px}
-.conf{height:3px;background:var(--grid);border-radius:2px;margin:4px 0 10px}
-.conf i{display:block;height:100%;border-radius:2px;background:var(--ink-2)}
-/* log */
-#log{list-style:none;font-size:12px;max-height:230px;overflow-y:auto}
-#log li{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--grid);
+.spark{width:100%;height:56px;margin-top:8px;display:block}
+#log{list-style:none;font-size:12px;max-height:150px;overflow-y:auto}
+#log li{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--grid);
   color:var(--ink-2)}
-#log time{color:var(--ink-mut);font-variant-numeric:tabular-nums}
+#log time{color:var(--ink-mut);font-variant-numeric:tabular-nums;flex-shrink:0}
+.chip{font-size:11px;color:var(--ink-mut);border:1px solid var(--border);
+  border-radius:99px;padding:3px 10px}
 .tip{position:fixed;pointer-events:none;background:#000;border:1px solid var(--border);
   border-radius:6px;padding:4px 8px;font-size:11px;color:var(--ink-2);
   display:none;z-index:9}
@@ -81,49 +86,43 @@ svg text{font-family:inherit}
 </head>
 <body>
 <header>
-  <h1>ARE YOU DEAD<span class="q">?</span></h1>
-  <span class="sub">WIFI PRESENCE DEAD-MAN'S-SWITCH — LIVE RADIO DATA</span>
-  <span id="conn">connecting…</span>
+  <div>
+    <h1>ARE YOU DEAD<span class="q">?</span></h1>
+    <div class="sub">YOUR HOME ANSWERS FOR YOU — LIVE WIFI SENSING, NO CAMERA, NO WEARABLE</div>
+  </div>
+  <div class="tools">
+    <span class="chip" id="timing-chip">…</span>
+    <button id="sound-btn" title="audible alarm">🔇 sound</button>
+    <button id="fs-btn">⛶ fullscreen</button>
+    <button id="recal-btn" title="re-learn empty room (60s, zone must be EMPTY)">↻ recalibrate</button>
+    <span id="conn">connecting…</span>
+  </div>
 </header>
 
-<div class="grid">
-  <div class="card" id="state-card">
-    <span id="state-icon">◌</span>
-    <div>
-      <div id="state-label" class="st-CALIBRATING">WAITING</div>
-      <div id="state-sub">connecting to the brain…</div>
-    </div>
-    <div id="count"><b>–</b><span>SECONDS SINCE LIFE</span></div>
-    <div id="deadline"><i></i></div>
-  </div>
+<div id="hero">
+  <div id="hero-state" class="st-CALIBRATING">STANDBY</div>
+  <div id="hero-sub">connecting to the apartment…</div>
+  <div id="hero-count">–<small>SECONDS SINCE LAST SIGN OF LIFE</small></div>
+  <div id="deadline"><i></i></div>
+</div>
 
-  <div class="card" id="n1-card">
-    <h2>SENSOR NODE 1</h2>
-    <div class="nodehead"><span class="dot" id="n1-dot" style="background:var(--baseline)"></span>
-      <span id="n1-status">no data</span></div>
+<div class="row">
+  <div class="card">
+    <h2><span class="dot" id="n1-dot"></span> RADIO SENSOR 1
+      <span class="nstat" id="n1-status">no data</span></h2>
     <div class="bar-wrap"><div class="bar" id="n1-bar" style="background:var(--node1)"></div>
-      <div class="thresh" id="n1-th" style="left:0"></div></div>
-    <div class="bar-lab"><span>signal turbulence</span><b id="n1-val">–</b></div>
-    <svg class="spark" id="n1-spark" viewBox="0 0 300 64" preserveAspectRatio="none"></svg>
-  </div>
-
-  <div class="card" id="n2-card">
-    <h2>SENSOR NODE 2</h2>
-    <div class="nodehead"><span class="dot" id="n2-dot" style="background:var(--baseline)"></span>
-      <span id="n2-status">no data</span></div>
-    <div class="bar-wrap"><div class="bar" id="n2-bar" style="background:var(--node2)"></div>
-      <div class="thresh" id="n2-th" style="left:0"></div></div>
-    <div class="bar-lab"><span>signal turbulence</span><b id="n2-val">–</b></div>
-    <svg class="spark" id="n2-spark" viewBox="0 0 300 64" preserveAspectRatio="none"></svg>
+      <div class="thresh"></div></div>
+    <div class="bar-lab"><span>disturbance (tick = life threshold)</span><b id="n1-val">–</b></div>
+    <svg class="spark" id="n1-spark" viewBox="0 0 300 56" preserveAspectRatio="none"></svg>
   </div>
 
   <div class="card">
-    <h2>VITAL SIGNS <span class="badge">EXPERIMENTAL</span></h2>
-    <div class="vrow"><b id="breath">–</b><span class="u">breaths / min</span></div>
-    <div class="conf"><i id="breath-conf" style="width:0%"></i></div>
-    <div class="vrow"><b id="heart">–</b><span class="u">heart bpm (very noisy)</span></div>
-    <div class="conf"><i id="heart-conf" style="width:0%"></i></div>
-    <svg class="spark" id="wave" viewBox="0 0 300 64" preserveAspectRatio="none"></svg>
+    <h2><span class="dot" id="n2-dot"></span> RADIO SENSOR 2
+      <span class="nstat" id="n2-status">no data</span></h2>
+    <div class="bar-wrap"><div class="bar" id="n2-bar" style="background:var(--node2)"></div>
+      <div class="thresh"></div></div>
+    <div class="bar-lab"><span>disturbance (tick = life threshold)</span><b id="n2-val">–</b></div>
+    <svg class="spark" id="n2-spark" viewBox="0 0 300 56" preserveAspectRatio="none"></svg>
   </div>
 
   <div class="card">
@@ -136,26 +135,87 @@ svg text{font-family:inherit}
 <script>
 const $ = id => document.getElementById(id);
 const STATES = {
-  ALIVE:        ["●","ALIVE","movement detected — all good"],
-  QUIET:        ["◐","QUIET","no signs of life — checking on you…"],
-  ALARM:        ["◉","ARE YOU DEAD?","no life detected past the deadline"],
-  SENSORS_DOWN: ["✖","SENSORS DOWN","system is blind — this is a fault, not an answer"],
-  CALIBRATING:  ["◌","CALIBRATING","learning the empty room — stay out of the zone"],
+  ALIVE:        ["ALIVE","movement detected — everything is fine"],
+  QUIET:        ["QUIET","no signs of life… checking on you"],
+  ALARM:        ["ARE YOU DEAD?","no life detected — alerting your emergency contact"],
+  SENSORS_DOWN: ["SENSORS DOWN","system is blind — a fault, never mistaken for “all good”"],
+  CALIBRATING:  ["LEARNING…","memorizing the empty home — stay out of the zone"],
 };
-const hist = {1:[], 2:[]};           // [ts, value, threshold]
+const hist = {1:[], 2:[]};
 const nodeColor = {1:"var(--node1)", 2:"var(--node2)"};
-let lastState = null;
+let lastState=null, lastMsg=null, lastMsgAt=0, soundOn=false, audio=null, alarmOsc=null;
+
+/* smooth ticking counter between MQTT updates */
+setInterval(()=>{
+  if(!lastMsg) return;
+  const s = lastMsg;
+  const extra = (Date.now()/1000) - lastMsgAt;
+  if(s.state==="CALIBRATING"){
+    const left = Math.max(0, (s.calibrating_for_s||0) - extra);
+    $("hero-count").firstChild.textContent = Math.ceil(left);
+    return;
+  }
+  const t = s.seconds_since_life + extra;
+  $("hero-count").firstChild.textContent = Math.floor(t);
+  const frac = Math.min(1, t/(s.alarm_after_s||60));
+  const bar = $("deadline").firstElementChild;
+  bar.style.width = (frac*100)+"%";
+  bar.style.background = frac>=1 ? "var(--crit)" : frac>=(s.quiet_after_s/s.alarm_after_s) ? "var(--warn)" : "var(--good)";
+}, 200);
+
+function setState(s){
+  lastMsg = s; lastMsgAt = Date.now()/1000;
+  const [label,sub] = STATES[s.state] || [s.state,""];
+  const hs = $("hero-state");
+  hs.textContent = label; hs.className = "st-"+s.state;
+  $("hero-sub").textContent = sub;
+  $("hero-count").lastElementChild.textContent =
+    s.state==="CALIBRATING" ? "SECONDS LEFT LEARNING" : "SECONDS SINCE LAST SIGN OF LIFE";
+  $("timing-chip").textContent = `quiet ${s.quiet_after_s}s · alarm ${s.alarm_after_s}s`;
+  document.body.classList.toggle("alarm", s.state==="ALARM");
+  document.body.classList.toggle("quiet", s.state==="QUIET");
+  for(const n of [1,2]){
+    const on = s.nodes_online && s.nodes_online[n];
+    $(`n${n}-dot`).style.background = on ? "var(--good)" : "var(--crit)";
+    $(`n${n}-status`).textContent = on ? "online" : "OFFLINE";
+  }
+  if(s.state!==lastState){
+    if(lastState!==null) addLog(lastState+" → "+s.state, s.state);
+    if(s.state==="ALARM" && soundOn) startAlarmSound(); else stopAlarmSound();
+    lastState = s.state;
+  }
+}
+
+function addLog(text, st){
+  const li = document.createElement("li");
+  const col = {ALARM:"var(--crit)",QUIET:"var(--warn)",ALIVE:"var(--good)",
+               SENSORS_DOWN:"var(--serious)"}[st] || "var(--ink-mut)";
+  li.innerHTML = `<time>${new Date().toLocaleTimeString()}</time>
+    <span style="color:${col}">●</span><span>${text}</span>`;
+  $("log").prepend(li);
+  while($("log").children.length>60) $("log").lastChild.remove();
+}
+
+function setNode(n, d){
+  const scale = d.threshold*2 || 100;           // threshold tick sits mid-bar
+  $(`n${n}-bar`).style.width = Math.min(100, d.presence/scale*100)+"%";
+  $(`n${n}-val`).textContent = d.presence.toFixed(1)+(d.calibrated?"":" (learning)");
+  hist[n].push([d.ts, d.presence, d.threshold]);
+  while(hist[n].length && d.ts - hist[n][0][0] > 60) hist[n].shift();
+  drawSpark(`n${n}-spark`, hist[n], nodeColor[n], d.threshold);
+}
 
 function drawSpark(svgId, pts, color, threshold){
   const svg = $(svgId); if(!pts.length) return;
-  const now = Date.now()/1000, W=300, H=64, SPAN=60;
+  const now = Date.now()/1000, W=300, H=56, SPAN=60;
   const vals = pts.map(p=>p[1]).concat(threshold||0);
   const max = Math.max(...vals)*1.15 || 1;
   const xy = pts.map(p=>[(1-(now-p[0])/SPAN)*W, H-4-(p[1]/max)*(H-10)]);
   let d = `<line x1="0" y1="${H-2}" x2="${W}" y2="${H-2}" stroke="var(--baseline)" stroke-width="1"/>`;
   if(threshold){
     const ty = H-4-(threshold/max)*(H-10);
-    d += `<line x1="0" y1="${ty}" x2="${W}" y2="${ty}" stroke="var(--ink-mut)" stroke-width="1" stroke-dasharray="3 4"/>`;
+    d += `<line x1="0" y1="${ty}" x2="${W}" y2="${ty}" stroke="var(--ink-mut)"
+          stroke-width="1" stroke-dasharray="3 4"/>`;
   }
   d += `<polyline fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"
         points="${xy.map(p=>p.map(v=>v.toFixed(1)).join(",")).join(" ")}"/>`;
@@ -164,93 +224,72 @@ function drawSpark(svgId, pts, color, threshold){
   svg.innerHTML = d;
 }
 
-function setState(s){
-  const [icon,label,sub] = STATES[s.state] || ["?", s.state, ""];
-  $("state-icon").textContent = icon;
-  const lab = $("state-label");
-  lab.textContent = label; lab.className = "st-"+s.state;
-  $("state-sub").textContent = sub;
-  $("count").firstElementChild.textContent =
-    s.state==="CALIBRATING" ? Math.ceil(s.calibrating_for_s||0)
-                            : Math.floor(s.seconds_since_life);
-  $("count").lastElementChild.textContent =
-    s.state==="CALIBRATING" ? "SECONDS LEFT LEARNING" : "SECONDS SINCE LIFE";
-  const frac = Math.min(1, s.seconds_since_life/(s.alarm_after_s||60));
-  const bar = $("deadline").firstElementChild;
-  bar.style.width = (frac*100)+"%";
-  bar.style.background = frac>=1 ? "var(--crit)" : frac>=0.5 ? "var(--warn)" : "var(--good)";
-  document.body.classList.toggle("alarm", s.state==="ALARM");
-  for(const n of [1,2]){
-    const on = s.nodes_online && s.nodes_online[n];
-    $(`n${n}-dot`).style.background = on ? "var(--good)" : "var(--crit)";
-    $(`n${n}-status`).textContent = on ? "online — streaming" : "OFFLINE";
-  }
-  if(s.state !== lastState && lastState !== null) addLog(lastState+" → "+s.state);
-  lastState = s.state;
-}
-
-function addLog(text){
-  const li = document.createElement("li");
-  li.innerHTML = `<time>${new Date().toLocaleTimeString()}</time><span>${text}</span>`;
-  $("log").prepend(li);
-  while($("log").children.length>40) $("log").lastChild.remove();
-}
-
-function setNode(n, d){
-  const pct = Math.min(100, d.presence/ (d.threshold*2 || 100) *100);
-  $(`n${n}-bar`).style.width = pct+"%";
-  $(`n${n}-th`).style.left = Math.min(98, 50)+"%"; // threshold rendered mid-scale
-  $(`n${n}-val`).textContent = d.presence.toFixed(1)+ (d.calibrated ? "" : " (calibrating)");
-  hist[n].push([d.ts, d.presence, d.threshold]);
-  while(hist[n].length && d.ts - hist[n][0][0] > 60) hist[n].shift();
-  drawSpark(`n${n}-spark`, hist[n], nodeColor[n], d.threshold);
-}
-
-function setVitals(d){
-  $("breath").textContent = d.breath_bpm.toFixed(0);
-  $("breath-conf").style.width = (d.breath_conf*100)+"%";
-  $("heart").textContent = d.heart_bpm.toFixed(0);
-  $("heart-conf").style.width = (d.heart_conf*100)+"%";
-  if(d.wave && d.wave.length>3){
-    const W=300,H=64, vs=d.wave, mx=Math.max(...vs.map(Math.abs))||1;
-    const xy = vs.map((v,i)=>[(i/(vs.length-1))*W, H/2 - (v/mx)*(H/2-6)]);
-    $("wave").innerHTML =
-      `<line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="var(--grid)" stroke-width="1"/>`+
-      `<polyline fill="none" stroke="var(--node1)" stroke-width="2"
-        points="${xy.map(p=>p.map(v=>v.toFixed(1)).join(",")).join(" ")}"/>`;
-  }
-}
-
-// hover tooltip on sparklines
+/* sparkline hover */
 for(const n of [1,2]){
   const svg = $(`n${n}-spark`);
   svg.addEventListener("mousemove", e=>{
     const pts = hist[n]; if(!pts.length) return;
     const r = svg.getBoundingClientRect();
-    const now = Date.now()/1000;
-    const t = now - (1 - (e.clientX-r.left)/r.width)*60;
+    const t = Date.now()/1000 - (1-(e.clientX-r.left)/r.width)*60;
     let best = pts[0];
     for(const p of pts) if(Math.abs(p[0]-t)<Math.abs(best[0]-t)) best=p;
     const tip=$("tip");
-    tip.style.display="block"; tip.style.left=(e.clientX+12)+"px"; tip.style.top=(e.clientY-10)+"px";
+    tip.style.display="block"; tip.style.left=(e.clientX+12)+"px";
+    tip.style.top=(e.clientY-12)+"px";
     tip.textContent = `${best[1].toFixed(1)} @ ${new Date(best[0]*1000).toLocaleTimeString()}`;
   });
   svg.addEventListener("mouseleave", ()=>$("tip").style.display="none");
 }
 
+/* audible alarm (WebAudio, needs one click to arm) */
+function startAlarmSound(){
+  if(!audio) audio = new (window.AudioContext||window.webkitAudioContext)();
+  stopAlarmSound();
+  const osc = audio.createOscillator(), gain = audio.createGain();
+  osc.type="square"; osc.frequency.value=880;
+  gain.gain.setValueAtTime(0.0001, audio.currentTime);
+  osc.connect(gain).connect(audio.destination); osc.start();
+  const iv = setInterval(()=>{
+    const t = audio.currentTime;
+    gain.gain.cancelScheduledValues(t);
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.setValueAtTime(0.0001, t+0.25);
+  }, 700);
+  alarmOsc = {osc, iv, gain};
+}
+function stopAlarmSound(){
+  if(alarmOsc){ clearInterval(alarmOsc.iv); try{alarmOsc.osc.stop();}catch(e){}
+    alarmOsc=null; }
+}
+$("sound-btn").onclick = ()=>{
+  soundOn = !soundOn;
+  $("sound-btn").textContent = soundOn ? "🔊 sound" : "🔇 sound";
+  $("sound-btn").classList.toggle("on", soundOn);
+  if(!audio && soundOn) audio = new (window.AudioContext||window.webkitAudioContext)();
+  if(!soundOn) stopAlarmSound();
+  else if(lastState==="ALARM") startAlarmSound();
+};
+
+$("fs-btn").onclick = ()=> document.fullscreenElement
+  ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+
+$("recal-btn").onclick = ()=>{
+  if(confirm("Re-learn the empty room?\n\nThis OVERWRITES the saved calibration when it completes.\nThe zone must be COMPLETELY EMPTY for 60 seconds."))
+    client.publish("areyoudead/cmd","calibrate");
+};
+
 const client = mqtt.connect("ws://localhost:9001");
 client.on("connect", ()=>{
   $("conn").textContent="live"; $("conn").classList.add("up");
-  client.subscribe(["areyoudead/state","areyoudead/event",
-                    "areyoudead/nodes/#","areyoudead/vitals/#"]);
+  client.subscribe(["areyoudead/state","areyoudead/nodes/#"]);
   addLog("dashboard connected");
 });
-client.on("close", ()=>{ $("conn").textContent="disconnected"; $("conn").classList.remove("up"); });
+client.on("close", ()=>{ $("conn").textContent="disconnected";
+  $("conn").classList.remove("up"); });
 client.on("message",(topic,msg)=>{
   let d; try{ d=JSON.parse(msg); }catch(e){ return; }
   if(topic==="areyoudead/state") setState(d);
   else if(topic.startsWith("areyoudead/nodes/")) setNode(+topic.split("/")[2], d);
-  else if(topic.startsWith("areyoudead/vitals/")) setVitals(d);
 });
 </script>
 </body>
