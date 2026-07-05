@@ -3,3 +3,5 @@ build/
 .pio/
 __pycache__/
 *.pyc
+nvs_config.csv
+nvs.bin
