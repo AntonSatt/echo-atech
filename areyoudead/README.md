@@ -52,6 +52,28 @@ adb forward tcp:1883 tcp:1883        # after every UNO Q USB replug
 .venv/bin/python areyoudead/live_view.py
 ```
 
+## SMS alerts (46elks) — runs on the laptop
+
+The brain has no internet while it hosts the sensor hotspot, so the SMS
+sender is a laptop-side bridge: it watches `areyoudead/event` over the
+adb-forwarded broker and texts via https://api.46elks.com/a1/sms.
+Alerts: entering `ALARM` ("no signs of life for Xs"), `ALARM → ALIVE`
+recovery, and `SENSORS_DOWN`; per-type cooldown (`SMS_COOLDOWN_S`, 20 s)
+so a flapping demo doesn't drain credits. Attaching while an ALARM is
+already in progress also alerts (retained state).
+
+```bash
+cp areyoudead/sms.env.example areyoudead/sms.env   # then fill in creds
+adb forward tcp:1883 tcp:1883
+.venv/bin/python areyoudead/sms_alert.py --test    # one real test SMS
+.venv/bin/python areyoudead/sms_alert.py           # run the bridge
+```
+
+`SMS_DRYRUN=yes` validates against the API without sending (free);
+`SMS_FROM` sets the sender name (alphanumeric, ≤11 chars, default
+`AreYouDead`). Trial accounts can only text the number verified at
+signup.
+
 ## Rebuild-from-nothing recipes
 
 **Node firmware** (only if a board is lost/replaced — binaries in

@@ -43,13 +43,49 @@ TICK_S = 0.5
 CAL_S = 60.0            # empty-room learning period
 WINDOW_S = 6.0          # sliding window for turbulence
 MARGIN_STD = 4.0        # threshold = cal_mean + MARGIN_STD * cal_std
-MARGIN_MIN = 1.25       # ... but at least cal_mean * MARGIN_MIN
+MARGIN_MIN = 1.15       # ... but at least cal_mean * MARGIN_MIN
+                        # (1.25 proved too high in the afternoon hall:
+                        # empty ~0.36, walking person peaks ~0.41-0.45)
+MARGIN_LO = 0.12        # low-side band: life if turb < mean*(1-MARGIN_LO)
 TOP_FRACTION = 0.25     # most-active subcarriers used for the metric
 
 RAW_MAGIC = 0xC5110001
 FEAT_MAGIC = 0xC5110006
 HDR = "<IBBHIIbbH"      # magic,node,n_ant,n_sub,freq,seq,rssi,noise,resv
 HDR_LEN = struct.calcsize(HDR)
+
+# Only OUR boards may feed the brain. A teammate's RuView nodes joined the
+# hotspot with node-ids 1/2 and their 20 m CSI path turned our baseline to
+# mush. Kernel has no netfilter, so we check sender MAC (via ARP) here.
+ALLOWED_MACS = {
+    "9c:13:9e:19:f3:0c",     # node2
+    # "9c:13:9e:19:01:68",   # node1 CUT 2026-07-05 ~17:40: radio degraded
+    # (turbulence collapsed 35->9, sigma 20% of mean, 3 false-life/2.5min
+    # in empty zone). Check its power supply / power-cycle before re-adding.
+}
+_allowed_ips = set()
+_denied_ips = {}                # ip -> last ARP re-check ts
+
+
+def sender_allowed(ip):
+    if ip in _allowed_ips:
+        return True
+    now = time.time()
+    if now - _denied_ips.get(ip, 0) < 30.0:
+        return False
+    _denied_ips[ip] = now
+    try:
+        with open("/proc/net/arp") as f:
+            for line in f.readlines()[1:]:
+                cols = line.split()
+                if cols[0] == ip and cols[3].lower() in ALLOWED_MACS:
+                    _allowed_ips.add(ip)
+                    return True
+    except OSError:
+        pass
+    log(f"DROPPING packets from unauthorized sender {ip}")
+    return False
+
 
 # ---------------------------------------------------------------------------
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -73,6 +109,7 @@ class Node:
         self.cal_mean = None
         self.cal_std = None
         self.threshold = None
+        self.threshold_lo = None
         self.last_metrics_pub = 0.0
 
     def add_frame(self, ts, amps):
@@ -115,14 +152,19 @@ class Node:
         sd = math.sqrt(var)
         self.cal_mean, self.cal_std = m, sd
         self.threshold = max(m + MARGIN_STD * sd, m * MARGIN_MIN)
+        # a body ON the AP-node path can ABSORB multipath -> turbulence
+        # DROPS below the empty baseline (seen live in the empty hall);
+        # deviation in either direction is a sign of life
+        self.threshold_lo = m - max(MARGIN_STD * sd, m * MARGIN_LO)
         log(f"node {self.nid} calibrated: empty mean={m:.4f} std={sd:.4f} "
-            f"-> threshold={self.threshold:.4f}")
+            f"-> threshold={self.threshold:.4f}/lo={self.threshold_lo:.4f}")
         save_calibration()
         return True
 
     def reset_calibration(self):
         self.cal_samples = []
-        self.cal_mean = self.cal_std = self.threshold = None
+        self.cal_mean = self.cal_std = None
+        self.threshold = self.threshold_lo = None
 
 
 nodes = {}
@@ -138,7 +180,8 @@ CAL_FILE = "/home/arduino/calibration.json"
 
 def save_calibration():
     data = {str(n.nid): {"cal_mean": n.cal_mean, "cal_std": n.cal_std,
-                         "threshold": n.threshold}
+                         "threshold": n.threshold,
+                         "threshold_lo": n.threshold_lo}
             for n in nodes.values() if n.calibrated()}
     if data:
         with open(CAL_FILE, "w") as f:
@@ -187,9 +230,11 @@ def publish(event=None):
 
 
 def on_mqtt_message(client, userdata, msg):
-    global cal_until, state
+    global cal_until, state, saved_cal
     if msg.topic == "areyoudead/cmd" and msg.payload == b"calibrate":
         log("recalibration requested")
+        saved_cal = {}   # else the boot-restore path re-applies stale
+                         # baselines at the window boundary (race)
         for n in nodes.values():
             n.reset_calibration()
         cal_until = time.time() + CAL_S
@@ -212,7 +257,7 @@ while True:
 
     now = time.time()
 
-    if data and len(data) >= HDR_LEN:
+    if data and len(data) >= HDR_LEN and sender_allowed(addr[0]):
         magic = struct.unpack_from("<I", data)[0]
         if magic == RAW_MAGIC:
             (m, nid, n_ant, n_sub, freq, seq,
@@ -232,6 +277,9 @@ while True:
                     node.cal_mean = c["cal_mean"]
                     node.cal_std = c["cal_std"]
                     node.threshold = c["threshold"]
+                    node.threshold_lo = c.get("threshold_lo",  # older files
+                        c["cal_mean"] - max(MARGIN_STD * c["cal_std"],
+                                            c["cal_mean"] * MARGIN_LO))
                 node.add_frame(now, amps)
         elif magic == FEAT_MAGIC and len(data) == 60:
             # tier-2 stragglers: still counts as node heartbeat
@@ -254,7 +302,7 @@ while True:
             node.feed_calibration(turb)
         elif not node.calibrated():
             node.finish_calibration()
-        elif turb > node.threshold:
+        elif turb > node.threshold or turb < node.threshold_lo:
             last_life = now
             last_life_node = node.nid
         if now - node.last_metrics_pub >= 0.5:
@@ -263,6 +311,7 @@ while True:
                 "presence": round(turb * 100, 1),   # viewer-friendly scale
                 "raw": round(turb, 4),
                 "threshold": round((node.threshold or 0) * 100, 1),
+                "threshold_lo": round((node.threshold_lo or 0) * 100, 1),
                 "calibrated": node.calibrated(),
                 "ts": now}))
 
