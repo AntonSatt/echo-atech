@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 nvs_config.csv
 nvs.bin
+areyoudead/sms.env
