@@ -130,6 +130,7 @@ start_ts = time.time()
 last_life = time.time()
 last_life_node = None
 last_pub = 0.0
+last_state_pub = 0.0
 
 # ---- calibration persistence: survive restarts, re-learn only on demand ----
 CAL_FILE = "/home/arduino/calibration.json"
@@ -287,7 +288,9 @@ while True:
     if new_state != state:
         old, state = state, new_state
         publish(f"{old}->{state}")
-    elif now - last_pub >= 2.0:
+        last_state_pub = now
+    elif now - last_state_pub >= 1.0:
         publish()
+        last_state_pub = now
     if now - last_pub >= TICK_S:
         last_pub = now
