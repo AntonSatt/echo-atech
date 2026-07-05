@@ -1,0 +1,13 @@
+[Unit]
+Description=Are You Dead? aliveness watchdog
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/arduino/areyoudead.py
+Restart=always
+RestartSec=3
+User=arduino
+
+[Install]
+WantedBy=multi-user.target
