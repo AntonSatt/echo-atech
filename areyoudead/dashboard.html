@@ -157,6 +157,11 @@ setInterval(()=>{
   }
   const t = s.seconds_since_life + extra;
   $("hero-count").firstChild.textContent = Math.floor(t);
+  if(s.state==="ALARM"){
+    const deadFor = Math.max(0, Math.floor(t - (s.alarm_after_s||60)));
+    $("hero-sub").textContent =
+      `presumed dead for ${deadFor} second${deadFor===1?"":"s"} — alerting your emergency contact`;
+  }
   const frac = Math.min(1, t/(s.alarm_after_s||60));
   const bar = $("deadline").firstElementChild;
   bar.style.width = (frac*100)+"%";
