@@ -18,6 +18,7 @@ STATE_ICON = {
     "QUIET": "\033[93m◐ QUIET — checking on you…\033[0m",
     "ALARM": "\033[91m◉ ALARM — ARE YOU DEAD?\033[0m",
     "SENSORS_DOWN": "\033[95m✖ SENSORS DOWN\033[0m",
+    "CALIBRATING": "\033[96m◌ CALIBRATING — learning the empty room, stay out!\033[0m",
 }
 
 state = {}
