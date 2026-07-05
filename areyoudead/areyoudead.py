@@ -46,6 +46,13 @@ MARGIN_STD = 4.0        # threshold = cal_mean + MARGIN_STD * cal_std
 MARGIN_MIN = 1.25       # ... but at least cal_mean * MARGIN_MIN
 TOP_FRACTION = 0.25     # most-active subcarriers used for the metric
 
+# Experimental vitals (EXPECT NOISE — amplitude micro-oscillation spectroscopy)
+VITALS_WIN_S = 30.0     # analysis window
+VITALS_FS = 10.0        # uniform resample rate, Hz
+VITALS_EVERY_S = 2.0
+BREATH_BAND = (0.10, 0.60)   # Hz  (6-36 breaths/min)
+HEART_BAND = (0.80, 2.20)    # Hz  (48-132 bpm)
+
 RAW_MAGIC = 0xC5110001
 FEAT_MAGIC = 0xC5110006
 HDR = "<IBBHIIbbH"      # magic,node,n_ant,n_sub,freq,seq,rssi,noise,resv
@@ -67,6 +74,7 @@ class Node:
     def __init__(self, nid):
         self.nid = nid
         self.frames = deque()      # (ts, [amplitude per subcarrier])
+        self.power = deque()       # (ts, mean amplitude) — vitals series
         self.last_pkt = 0.0
         self.turbulence = 0.0
         self.cal_samples = []
@@ -74,12 +82,71 @@ class Node:
         self.cal_std = None
         self.threshold = None
         self.last_metrics_pub = 0.0
+        self.last_vitals_pub = 0.0
 
     def add_frame(self, ts, amps):
         self.last_pkt = ts
         self.frames.append((ts, amps))
         while self.frames and ts - self.frames[0][0] > WINDOW_S:
             self.frames.popleft()
+        # long series of total amplitude for vitals spectroscopy
+        self.power.append((ts, sum(amps) / len(amps)))
+        while self.power and ts - self.power[0][0] > VITALS_WIN_S + 2:
+            self.power.popleft()
+
+    def compute_vitals(self):
+        """Dominant spectral peak in breathing / heart bands (Goertzel on a
+        uniformly-resampled amplitude series). Experimental by design."""
+        if len(self.power) < 40:
+            return None
+        pts = list(self.power)
+        t0, t1 = pts[0][0], pts[-1][0]
+        if t1 - t0 < VITALS_WIN_S * 0.6:
+            return None
+        n = int((t1 - t0) * VITALS_FS)
+        if n < 64:
+            return None
+        # linear-interp resample to a uniform grid
+        series, j = [], 0
+        for i in range(n):
+            t = t0 + i / VITALS_FS
+            while j < len(pts) - 2 and pts[j + 1][0] < t:
+                j += 1
+            (ta, va), (tb, vb) = pts[j], pts[j + 1]
+            f = 0.0 if tb == ta else (t - ta) / (tb - ta)
+            series.append(va + f * (vb - va))
+        mean = sum(series) / n
+        series = [(v - mean) * (0.5 - 0.5 * math.cos(2 * math.pi * i / (n - 1)))
+                  for i, v in enumerate(series)]  # detrend + Hann
+
+        def goertzel_power(freq):
+            w = 2 * math.pi * freq / VITALS_FS
+            c, s0, s1, s2 = 2 * math.cos(w), 0.0, 0.0, 0.0
+            for v in series:
+                s0 = v + c * s1 - s2
+                s2, s1 = s1, s0
+            return s1 * s1 + s2 * s2 - c * s1 * s2
+
+        def band_peak(lo, hi, step):
+            powers = [(goertzel_power(lo + k * step), lo + k * step)
+                      for k in range(int((hi - lo) / step) + 1)]
+            total = sum(p for p, _ in powers) or 1e-12
+            peak, freq = max(powers)
+            conf = min(1.0, (peak / (total / len(powers))) / len(powers) * 3)
+            return freq * 60.0, conf
+
+        breath_bpm, breath_conf = band_peak(*BREATH_BAND, 0.02)
+        heart_bpm, heart_conf = band_peak(*HEART_BAND, 0.05)
+        # waveform for the dashboard: last 8 s, breathing-band-ish smoothing
+        tail = series[-int(8 * VITALS_FS):]
+        k = 5
+        wave = [round(sum(tail[max(0, i - k):i + 1]) / (i - max(0, i - k) + 1), 3)
+                for i in range(len(tail))][::2]
+        return {"breath_bpm": round(breath_bpm, 1),
+                "breath_conf": round(breath_conf, 2),
+                "heart_bpm": round(heart_bpm, 1),
+                "heart_conf": round(heart_conf, 2),
+                "wave": wave}
 
     def compute_turbulence(self):
         if len(self.frames) < 10:
@@ -224,6 +291,12 @@ while True:
                 "threshold": round((node.threshold or 0) * 100, 1),
                 "calibrated": node.calibrated(),
                 "ts": now}))
+        if now - node.last_vitals_pub >= VITALS_EVERY_S:
+            node.last_vitals_pub = now
+            vit = node.compute_vitals()
+            if vit:
+                vit["ts"] = now
+                mq.publish(f"areyoudead/vitals/{node.nid}", json.dumps(vit))
 
     if calibrating:
         new_state = "CALIBRATING"
